@@ -5,7 +5,7 @@ It pairs a FastAPI backend with a handcrafted HTML/CSS/JavaScript frontend and a
 map-like visualization to highlight asset health, risk prioritization, spares coverage, and
 crew activity without depending on external mapping or UI frameworks.
 
-## Getting started
+## Run Instructions
 
 1. Create and activate a virtual environment, then install the backend dependencies:
 
@@ -24,6 +24,21 @@ crew activity without depending on external mapping or UI frameworks.
 3. Visit [http://localhost:8000](http://localhost:8000) to open the control tower dashboard.
    The frontend ships directly in the `frontend/` directory and is served as static files by
    FastAPI—no additional build tooling or CDN-hosted libraries are required.
+
+## Dashboard highlights
+
+- **Asset health intelligence** – a simulated SVG grid map renders healthy, warning, and critical
+  assets alongside crew and depot markers. Hover or click to inspect AI-predicted failure windows,
+  confidence, and maintenance cost outlooks for each asset.
+- **Optimized maintenance plan** – a risk-weighted table ranks assets by a generated priority score
+  that blends risk, criticality, cost, and downtime. Toggle quick filters to spotlight the most
+  urgent work or reorder by estimated maintenance spend.
+- **Crew schedule optimization** – timeline lanes visualize each crew’s upcoming assignments while
+  summary tiles quantify on-site, en route, and standby teams. AI-driven narrative text captures the
+  fastest dispatch windows and field coverage.
+- **AI-based maintenance resolution** – a parts intelligence table combines replacement cadence,
+  failure patterns, intervention counts, and synthesized AI recommendations to drive proactive
+  spares strategy.
 
 ## Demo features
 

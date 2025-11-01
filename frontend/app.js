@@ -1,541 +1,505 @@
-(function () {
-  const api = {
-    dashboard: () => fetchJson('/api/dashboard'),
-    refresh: () => fetchJson('/api/refresh', { method: 'POST' }),
-  };
-
+(() => {
   const state = {
-    snapshot: null,
-    zoom: 0.85,
-    panX: -60,
-    panY: -40,
-    isPanning: false,
-    panStart: { x: 0, y: 0 },
-    panOrigin: { x: 0, y: 0 },
+    data: null,
+    planSort: "risk",
+    filterHigh: false,
+    zoom: 1,
+    offset: { x: 0, y: 0 },
+    isDragging: false,
+    dragOrigin: { x: 0, y: 0 },
+    startOffset: { x: 0, y: 0 },
+    pointerId: null,
+    popoverLocked: false,
   };
 
-  const elements = {};
+  const els = {};
 
-  document.addEventListener('DOMContentLoaded', () => {
+  document.addEventListener("DOMContentLoaded", init);
+
+  function init() {
     cacheElements();
-    bindEvents();
-    loadInitial();
-  });
-
-  function cacheElements() {
-    elements.mapViewport = document.getElementById('mapViewport');
-    elements.mapInner = document.getElementById('mapInner');
-    elements.markerLayer = document.getElementById('markerLayer');
-    elements.routeLayer = document.getElementById('routeLayer');
-    elements.refreshBtn = document.getElementById('refreshBtn');
-    elements.timestamp = document.getElementById('generatedAt');
-    elements.lensList = document.getElementById('lensList');
-    elements.healthBreakdown = document.getElementById('healthBreakdown');
-    elements.regionList = document.getElementById('regionList');
-    elements.assetList = document.getElementById('assetList');
-    elements.priorityList = document.getElementById('priorityList');
-    elements.crewList = document.getElementById('crewList');
-    elements.popover = document.getElementById('markerPopover');
+    attachEvents();
+    resetMapView();
+    loadDashboard();
   }
 
-  function bindEvents() {
-    elements.refreshBtn.addEventListener('click', handleRefresh);
-    window.addEventListener('resize', () => hidePopover());
+  function cacheElements() {
+    els.refreshBtn = document.getElementById("refreshBtn");
+    els.generatedAt = document.getElementById("generatedAt");
+    els.aiSummary = document.getElementById("aiSummary");
+    els.criticalCount = document.getElementById("criticalCount");
+    els.warningCount = document.getElementById("warningCount");
+    els.healthyCount = document.getElementById("healthyCount");
+    els.planTableBody = document.getElementById("planTableBody");
+    els.sortRiskBtn = document.getElementById("sortRiskBtn");
+    els.sortCostBtn = document.getElementById("sortCostBtn");
+    els.filterHighBtn = document.getElementById("filterHighBtn");
+    els.crewTimeline = document.getElementById("crewTimeline");
+    els.crewSummary = document.getElementById("crewSummary");
+    els.crewNarrative = document.getElementById("crewNarrative");
+    els.resolutionTableBody = document.getElementById("resolutionTableBody");
+    els.resolutionInsight = document.getElementById("resolutionInsight");
+    els.mapViewport = document.getElementById("mapViewport");
+    els.mapInner = document.getElementById("mapInner");
+    els.markerLayer = document.getElementById("markerLayer");
+    els.gridOverlay = document.getElementById("gridOverlay");
+    els.zoomInBtn = document.getElementById("zoomInBtn");
+    els.zoomOutBtn = document.getElementById("zoomOutBtn");
+    els.resetViewBtn = document.getElementById("resetViewBtn");
+    els.markerPopover = document.getElementById("markerPopover");
+  }
 
-    elements.mapViewport.addEventListener('wheel', handleZoom, { passive: false });
-    elements.mapViewport.addEventListener('pointerdown', startPan);
-    window.addEventListener('pointermove', panMove);
-    window.addEventListener('pointerup', endPan);
-    window.addEventListener('scroll', () => hidePopover());
-    document.addEventListener('keydown', (event) => {
-      if (event.key === 'Escape') {
+  function attachEvents() {
+    els.refreshBtn.addEventListener("click", () => loadDashboard(true));
+    els.sortRiskBtn.addEventListener("click", () => {
+      state.planSort = "risk";
+      renderMaintenancePlan();
+      updatePlanButtons();
+    });
+    els.sortCostBtn.addEventListener("click", () => {
+      state.planSort = "cost";
+      renderMaintenancePlan();
+      updatePlanButtons();
+    });
+    els.filterHighBtn.addEventListener("click", () => {
+      state.filterHigh = !state.filterHigh;
+      els.filterHighBtn.setAttribute("aria-pressed", String(state.filterHigh));
+      renderMaintenancePlan();
+    });
+
+    els.zoomInBtn.addEventListener("click", () => changeZoom(0.15));
+    els.zoomOutBtn.addEventListener("click", () => changeZoom(-0.15));
+    els.resetViewBtn.addEventListener("click", resetMapView);
+
+    els.mapViewport.addEventListener("pointerdown", startDrag);
+    els.mapViewport.addEventListener("pointermove", onDrag);
+    els.mapViewport.addEventListener("pointerup", endDrag);
+    els.mapViewport.addEventListener("pointerleave", endDrag);
+    els.mapViewport.addEventListener("wheel", onWheel, { passive: false });
+
+    window.addEventListener("resize", resetMapView);
+
+    document.addEventListener("click", (event) => {
+      if (!els.markerPopover.contains(event.target)) {
+        state.popoverLocked = false;
         hidePopover();
       }
     });
   }
 
-  async function loadInitial() {
+  async function loadDashboard(refresh = false) {
     try {
-      setLoading(true);
-      const snapshot = await api.dashboard();
-      state.snapshot = snapshot;
-      renderSnapshot();
+      els.refreshBtn.disabled = true;
+      els.refreshBtn.classList.add("loading");
+      const response = await fetch(refresh ? "/api/refresh" : "/api/dashboard", {
+        method: refresh ? "POST" : "GET",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!response.ok) throw new Error("Failed to load dashboard data");
+      const data = await response.json();
+      state.data = data;
+      renderDashboard();
     } catch (error) {
-      console.error('Failed to load dashboard data', error);
-      setStatusMessage('Failed to load data');
+      console.error(error);
     } finally {
-      setLoading(false);
+      els.refreshBtn.disabled = false;
+      els.refreshBtn.classList.remove("loading");
     }
   }
 
-  function setLoading(isLoading) {
-    elements.refreshBtn.disabled = isLoading;
-    elements.refreshBtn.setAttribute('aria-busy', String(isLoading));
-    elements.refreshBtn.classList.toggle('is-loading', isLoading);
+  function renderDashboard() {
+    if (!state.data) return;
+    const generatedAt = new Date(state.data.generated_at || Date.now());
+    els.generatedAt.textContent = `Updated ${generatedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+
+    renderMap();
+    renderAssetSummary();
+    renderMaintenancePlan();
+    updatePlanButtons();
+    renderCrewSchedule();
+    renderResolution();
   }
 
-  function setStatusMessage(message) {
-    elements.timestamp.textContent = message;
-  }
+  function renderMap() {
+    if (!state.data) return;
+    state.popoverLocked = false;
+    hidePopover();
+    els.markerLayer.innerHTML = "";
+    const assets = state.data.assets || [];
+    const crews = state.data.crews || [];
+    const depots = state.data.spares || [];
 
-  async function handleRefresh() {
-    try {
-      setLoading(true);
-      hidePopover();
-      const snapshot = await api.refresh();
-      state.snapshot = snapshot;
-      renderSnapshot(true);
-    } catch (error) {
-      console.error('Refresh failed', error);
-      setStatusMessage('Refresh failed');
-    } finally {
-      setLoading(false);
-    }
-  }
+    assets.forEach((asset) => {
+      const marker = createMarker("asset", asset);
+      if (asset.status === "Critical") marker.classList.add("pulse");
+      marker.dataset.health = asset.status.toLowerCase();
+      marker.classList.add(asset.status.toLowerCase());
+      marker.textContent = "A";
+      attachMarkerInteractions(marker, () => assetPopoverContent(asset));
+      els.markerLayer.appendChild(marker);
+      requestAnimationFrame(() => marker.classList.add("spawn"));
+    });
 
-  function renderSnapshot(isRefresh = false) {
-    if (!state.snapshot) {
-      return;
-    }
-    const { generated_at: generatedAt } = state.snapshot;
-    if (generatedAt) {
-      const display = new Date(generatedAt).toLocaleString();
-      elements.timestamp.textContent = `Updated ${display}`;
-    }
+    crews.forEach((crew) => {
+      const marker = createMarker("crew", crew);
+      marker.textContent = "C";
+      attachMarkerInteractions(marker, () => crewPopoverContent(crew));
+      els.markerLayer.appendChild(marker);
+      requestAnimationFrame(() => marker.classList.add("spawn"));
+    });
 
-    renderSidebar();
-    renderMap(isRefresh);
-    renderPanels();
-  }
-
-  function renderSidebar() {
-    const assets = state.snapshot.assets || [];
-    const lensConfig = [
-      { label: 'All assets', count: assets.length },
-      {
-        label: 'High risk',
-        count: assets.filter((item) => item.risk_score >= 40).length,
-      },
-      {
-        label: 'Upcoming maintenance',
-        count: assets.filter((item) => daysUntil(item.next_service) <= 14).length,
-      },
-      {
-        label: 'Extended service gaps',
-        count: assets.filter((item) => daysSince(item.last_service) >= 120).length,
-      },
-    ];
-
-    elements.lensList.innerHTML = lensConfig
-      .map((lens) => `<li><strong>${lens.count}</strong> ${lens.label}</li>`)
-      .join('');
-
-    const healthCounts = assets.reduce((acc, asset) => {
-      acc[asset.status] = (acc[asset.status] || 0) + 1;
-      return acc;
-    }, {});
-
-    const order = ['Excellent', 'Good', 'Warning', 'Critical'];
-    elements.healthBreakdown.innerHTML = order
-      .filter((status) => healthCounts[status])
-      .map((status) => {
-        const tier = status.toLowerCase();
-        return `
-          <div class="status-row">
-            <span class="badge ${tier}">
-              <span class="dot" aria-hidden="true"></span>
-              ${status}
-            </span>
-            <span class="count">${healthCounts[status]}</span>
-          </div>
-        `;
-      })
-      .join('');
-
-    const regions = groupBy(assets, (asset) => asset.region);
-    elements.regionList.innerHTML = Object.entries(regions)
-      .map(([region, items]) => `<li><strong>${items.length}</strong> ${region}</li>`)
-      .join('');
-  }
-
-  function renderPanels() {
-    renderAssetPanel();
-    renderRiskPanel();
-    renderCrewPanel();
-  }
-
-  function renderAssetPanel() {
-    const assets = (state.snapshot.assets || []).slice(0, 6);
-    elements.assetList.innerHTML = assets
-      .map((asset) => {
-        const nextService = new Date(asset.next_service).toLocaleDateString();
-        const badgeClass = badgeFor(asset.status);
-        return `
-          <li class="item-card" data-marker="${asset.id}">
-            <header>
-              <span>${asset.name}</span>
-              <span class="badge ${badgeClass}">${asset.status}</span>
-            </header>
-            <div class="meta">Type • ${asset.type}</div>
-            <div class="meta">Next service • ${nextService}</div>
-          </li>
-        `;
-      })
-      .join('');
-
-    elements.assetList.querySelectorAll('[data-marker]').forEach((node) => {
-      node.addEventListener('click', () => {
-        const asset = state.snapshot.assets.find((item) => item.id === node.dataset.marker);
-        if (asset) {
-          focusMarker(asset.id);
-          showPopover(asset, node.getBoundingClientRect());
-        }
-      });
+    depots.forEach((depot) => {
+      const marker = createMarker("depot", depot);
+      marker.textContent = "D";
+      attachMarkerInteractions(marker, () => depotPopoverContent(depot));
+      els.markerLayer.appendChild(marker);
+      requestAnimationFrame(() => marker.classList.add("spawn"));
     });
   }
 
-  function renderRiskPanel() {
-    const priorities = (state.snapshot.priorities || []).slice(0, 5);
-    elements.priorityList.innerHTML = priorities
-      .map((item) => `
-        <li class="item-card">
-          <header>
-            <span>#${item.rank} ${item.name}</span>
-            <span class="badge ${badgeFor(item.status)}">Risk ${item.risk_score}</span>
-          </header>
-          <div class="meta">Next service window • ${new Date(item.next_service).toLocaleDateString()}</div>
-        </li>
-      `)
-      .join('');
-  }
-
-  function renderCrewPanel() {
-    const crews = state.snapshot.crews || [];
-    elements.crewList.innerHTML = crews
-      .map((crew) => {
-        const tasks = (crew.next_tasks || [])
-          .map((task) => `${task.asset_name} · ETA ${formatTime(task.eta)}`)
-          .join('<br />');
-        return `
-          <li class="item-card" data-crew="${crew.id}">
-            <header>
-              <span>${crew.name}</span>
-              <span class="badge">${crew.status}</span>
-            </header>
-            <div class="meta">Shift ends • ${formatTime(crew.shift_end)}</div>
-            <div class="meta">${tasks}</div>
-          </li>
-        `;
-      })
-      .join('');
-
-    elements.crewList.querySelectorAll('[data-crew]').forEach((node) => {
-      node.addEventListener('click', () => {
-        const crew = state.snapshot.crews.find((item) => item.id === node.dataset.crew);
-        if (crew) {
-          focusMarker(crew.id);
-        }
-      });
-    });
-  }
-
-  function renderMap(isRefresh) {
-    applyTransform();
-    drawRoutes();
-    drawMarkers(isRefresh);
-  }
-
-  function drawRoutes() {
-    elements.routeLayer.innerHTML = '';
-    const routes = state.snapshot.routes || {};
-    Object.entries(routes).forEach(([crewId, waypoints]) => {
-      if (!Array.isArray(waypoints) || waypoints.length === 0) {
-        return;
-      }
-      const crew = state.snapshot.crews.find((item) => item.id === crewId);
-      if (!crew) {
-        return;
-      }
-      const points = [{ x: crew.x, y: crew.y }, ...waypoints];
-      const path = points
-        .map((point, index) => `${index === 0 ? 'M' : 'L'}${point.x},${point.y}`)
-        .join(' ');
-      const container = document.createElement('div');
-      container.className = 'route-path';
-      container.innerHTML = `
-        <svg width="0" height="0">
-          <path d="${path}" fill="none" stroke="rgba(129, 140, 248, 0.6)" stroke-width="2" stroke-dasharray="6 6" stroke-linecap="round" />
-        </svg>
-      `;
-      elements.routeLayer.appendChild(container);
-    });
-  }
-
-  function drawMarkers(isRefresh) {
-    elements.markerLayer.innerHTML = '';
-    const fragment = document.createDocumentFragment();
-
-    (state.snapshot.assets || []).forEach((asset) => {
-      const marker = createMarkerElement({
-        id: asset.id,
-        label: 'A',
-        className: `marker asset-${asset.status}`,
-        x: asset.x,
-        y: asset.y,
-        title: `${asset.name}\nStatus: ${asset.status}`,
-        onClick: (event) => showPopover(asset, event.target.getBoundingClientRect(), event),
-      });
-      if (isRefresh) {
-        marker.classList.add('refreshing');
-      }
-      fragment.appendChild(marker);
-    });
-
-    (state.snapshot.crews || []).forEach((crew) => {
-      const marker = createMarkerElement({
-        id: crew.id,
-        label: 'C',
-        className: 'marker crew',
-        x: crew.x,
-        y: crew.y,
-        title: `${crew.name}\n${crew.status}`,
-        onClick: (event) => showPopover(crewPopoverData(crew), event.target.getBoundingClientRect(), event),
-      });
-      fragment.appendChild(marker);
-    });
-
-    (state.snapshot.spares || []).forEach((depot) => {
-      const marker = createMarkerElement({
-        id: depot.id,
-        label: 'D',
-        className: 'marker depot',
-        x: depot.x,
-        y: depot.y,
-        title: `${depot.name}`,
-        onClick: (event) => showPopover(depotPopoverData(depot), event.target.getBoundingClientRect(), event),
-      });
-      fragment.appendChild(marker);
-    });
-
-    elements.markerLayer.appendChild(fragment);
-  }
-
-  function createMarkerElement({ id, label, className, x, y, title, onClick }) {
-    const marker = document.createElement('button');
-    marker.type = 'button';
-    marker.className = className;
-    marker.dataset.id = id;
-    marker.textContent = label;
-    marker.style.left = `${x}px`;
-    marker.style.top = `${y}px`;
-    marker.title = title;
-    marker.addEventListener('click', (event) => {
-      event.stopPropagation();
-      onClick(event);
-    });
-    marker.addEventListener('mouseenter', () => marker.classList.add('hover'));
-    marker.addEventListener('mouseleave', () => marker.classList.remove('hover'));
+  function createMarker(type, item) {
+    const marker = document.createElement("button");
+    marker.type = "button";
+    marker.className = "marker";
+    marker.dataset.type = type;
+    marker.style.left = `${item.x}px`;
+    marker.style.top = `${item.y}px`;
+    marker.setAttribute("aria-label", `${type} marker for ${item.name || item.id}`);
     return marker;
   }
 
-  function focusMarker(markerId) {
-    const node = elements.markerLayer.querySelector(`[data-id="${markerId}"]`);
-    if (node) {
-      node.classList.add('refreshing');
-      setTimeout(() => node.classList.remove('refreshing'), 500);
-    }
+  function attachMarkerInteractions(marker, contentFactory) {
+    let hideTimer;
+
+    marker.addEventListener("mouseenter", (event) => {
+      if (state.popoverLocked) return;
+      clearTimeout(hideTimer);
+      showPopover(event.currentTarget, contentFactory());
+    });
+
+    marker.addEventListener("mouseleave", () => {
+      if (state.popoverLocked) return;
+      hideTimer = setTimeout(hidePopover, 120);
+    });
+
+    marker.addEventListener("click", (event) => {
+      event.stopPropagation();
+      state.popoverLocked = true;
+      clearTimeout(hideTimer);
+      showPopover(event.currentTarget, contentFactory());
+    });
   }
 
-  function crewPopoverData(crew) {
-    return {
-      name: crew.name,
-      status: crew.status,
-      content: `Shift ends ${formatTime(crew.shift_end)}`,
-      detail: (crew.next_tasks || []).slice(0, 2).map((task) => `${task.asset_name} → ${formatTime(task.eta)}`).join('<br />'),
-    };
-  }
-
-  function depotPopoverData(depot) {
-    const topNeed = Object.entries(depot.projected_demand || {})
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 2)
-      .map(([part, qty]) => `${formatLabel(part)}: ${qty}`)
-      .join('<br />');
-    return {
-      name: depot.name,
-      status: `${depot.region} depot`,
-      content: `Inventory lines ${Object.keys(depot.inventory || {}).length}`,
-      detail: topNeed,
-    };
-  }
-
-  function showPopover(item, rect, event) {
-    if (!item) return;
-    const popoverData = normalisePopover(item);
-    const popover = elements.popover;
-    const mapRect = elements.mapViewport.getBoundingClientRect();
-    const pointerX = event?.clientX || rect.left + rect.width / 2;
-    const pointerY = event?.clientY || rect.top + rect.height / 2;
-
-    popover.innerHTML = `
-      <h3>${popoverData.title}</h3>
-      <p class="highlight">${popoverData.subtitle}</p>
-      <p>${popoverData.detail}</p>
-    `;
-    popover.style.left = `${Math.min(Math.max(pointerX, mapRect.left + 40), mapRect.right - 40)}px`;
-    popover.style.top = `${pointerY - 30}px`;
-    popover.classList.add('visible');
-    popover.setAttribute('aria-hidden', 'false');
-    window.clearTimeout(popover._hideTimer);
-    const timerId = window.setTimeout(() => {
-      document.addEventListener('click', hidePopover, { once: true });
-    }, 0);
-    popover._hideTimer = timerId;
+  function showPopover(marker, content) {
+    els.markerPopover.innerHTML = content;
+    const rect = marker.getBoundingClientRect();
+    els.markerPopover.style.left = `${rect.left + rect.width / 2}px`;
+    els.markerPopover.style.top = `${rect.top - 8}px`;
+    els.markerPopover.classList.add("visible");
   }
 
   function hidePopover() {
-    window.clearTimeout(elements.popover._hideTimer);
-    elements.popover.classList.remove('visible');
-    elements.popover.setAttribute('aria-hidden', 'true');
+    els.markerPopover.classList.remove("visible");
   }
 
-  function normalisePopover(item) {
-    if ('status' in item && 'health_score' in item) {
-      return {
-        title: item.name,
-        subtitle: `${item.status} • Health ${item.health_score} • Risk ${item.risk_score}`,
-        detail: `Last service ${formatDate(item.last_service)} · Next ${formatDate(item.next_service)}`,
-      };
-    }
-    if (item.status && item.content) {
-      return {
-        title: item.name,
-        subtitle: item.status,
-        detail: `${item.content}${item.detail ? '<br />' + item.detail : ''}`,
-      };
-    }
-    return {
-      title: item.name || 'Details',
-      subtitle: item.status || '',
-      detail: item.detail || '',
-    };
+  function assetPopoverContent(asset) {
+    const cost = formatCurrency(asset.maintenance_cost);
+    const confidence = Math.round((asset.ai_confidence || 0) * 100);
+    return `
+      <h3>${asset.name}</h3>
+      <p>Status: <strong>${asset.status}</strong> · Criticality: ${asset.criticality}</p>
+      <p>Risk score <strong>${asset.risk_score}</strong> · Priority ${confidence}% confidence</p>
+      <p>Predicted issue: ${asset.predicted_issue}</p>
+      <p>Failure window: ${asset.failure_window_hours} hrs · Est. downtime: ${asset.estimated_downtime_hours} hrs</p>
+      <p>Maintenance cost: ${cost}</p>
+      <div class="chips">
+        <span class="chip">${asset.type}</span>
+        <span class="chip">${asset.region}</span>
+        <span class="chip">Next service ${formatRelative(asset.next_service)}</span>
+      </div>
+    `;
   }
 
-  function applyTransform() {
-    const { zoom, panX, panY } = state;
-    elements.mapInner.style.transform = `translate(${panX}px, ${panY}px) scale(${zoom})`;
+  function crewPopoverContent(crew) {
+    const tasks = (crew.next_tasks || [])
+      .map((task) => `<li><strong>${task.asset_name}</strong> · ${task.task} · ETA ${task.eta_minutes} min</li>`)
+      .join("");
+    return `
+      <h3>${crew.name}</h3>
+      <p>Status: <strong>${crew.status}</strong></p>
+      <p>Shift window: ${formatTimeRange(crew.shift_start, crew.shift_end)}</p>
+      <p>Upcoming tasks:</p>
+      <ul>${tasks || "<li>No tasks scheduled</li>"}</ul>
+    `;
   }
 
-  function handleZoom(event) {
-    event.preventDefault();
-    const delta = -event.deltaY;
-    const zoomStep = delta > 0 ? 0.08 : -0.08;
-    const newZoom = clamp(state.zoom + zoomStep, 0.6, 2.3);
-    updateZoom(newZoom, event);
+  function depotPopoverContent(depot) {
+    const topInventory = Object.entries(depot.inventory)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([part, qty]) => `<li>${part}: ${qty}</li>`)
+      .join("");
+    return `
+      <h3>${depot.name}</h3>
+      <p>Region: ${depot.region}</p>
+      <p>Top inventory:</p>
+      <ul>${topInventory}</ul>
+    `;
   }
 
-  function updateZoom(newZoom, event) {
-    const rect = elements.mapViewport.getBoundingClientRect();
-    const pointer = {
-      x: event.clientX - rect.left,
-      y: event.clientY - rect.top,
-    };
-    const world = {
-      x: (pointer.x - state.panX) / state.zoom,
-      y: (pointer.y - state.panY) / state.zoom,
-    };
-    state.zoom = newZoom;
-    state.panX = pointer.x - world.x * state.zoom;
-    state.panY = pointer.y - world.y * state.zoom;
-    applyTransform();
+  function renderAssetSummary() {
+    const assets = state.data?.assets || [];
+    const counts = assets.reduce(
+      (acc, asset) => {
+        const status = asset.status.toLowerCase();
+        if (status === "critical") acc.critical += 1;
+        else if (status === "warning") acc.warning += 1;
+        else acc.healthy += 1;
+        return acc;
+      },
+      { critical: 0, warning: 0, healthy: 0 }
+    );
+    els.criticalCount.textContent = counts.critical;
+    els.warningCount.textContent = counts.warning;
+    els.healthyCount.textContent = counts.healthy;
+    els.aiSummary.textContent = state.data.ai_summary || "AI monitor online";
   }
 
-  function startPan(event) {
-    if (event.pointerType === 'mouse' && event.button !== 0) {
+  function renderMaintenancePlan() {
+    if (!state.data) return;
+    const plan = [...(state.data.maintenance_plan || state.data.priorities || [])];
+    if (!plan.length) {
+      els.planTableBody.innerHTML = "<tr><td colspan=6>No plan data</td></tr>";
       return;
     }
-    state.isPanning = true;
-    state.panStart = { x: event.clientX, y: event.clientY };
-    state.panOrigin = { x: state.panX, y: state.panY };
-    elements.mapViewport.setPointerCapture(event.pointerId);
+
+    let working = plan;
+    if (state.filterHigh) {
+      const maxScore = Math.max(...plan.map((item) => item.priority_score));
+      const threshold = maxScore - 10;
+      working = plan.filter((item) => item.priority_score >= threshold);
+    }
+
+    if (state.planSort === "cost") {
+      working = [...working].sort((a, b) => a.maintenance_cost - b.maintenance_cost);
+    } else {
+      working = [...working].sort((a, b) => b.priority_score - a.priority_score);
+    }
+
+    if (!working.length) {
+      els.planTableBody.innerHTML = "<tr><td colspan=6>No plan data</td></tr>";
+      return;
+    }
+
+    const topScore = Math.max(...working.map((item) => item.priority_score));
+    const rows = working.slice(0, 12).map((item) => {
+      const badgeClass = item.criticality.toLowerCase();
+      const highlight = item.priority_score >= topScore - 5;
+      return `
+        <tr class="${highlight ? "highlight" : ""}">
+          <td>${item.rank}</td>
+          <td>
+            <div>${item.name}</div>
+            <div class="sub">ETA ${item.estimated_downtime_hours} hrs downtime</div>
+          </td>
+          <td><span class="badge ${badgeClass}">${item.criticality}</span></td>
+          <td>${item.priority_score}</td>
+          <td><span class="badge costly">${formatCurrency(item.maintenance_cost)}</span></td>
+          <td>${item.recommended_action}</td>
+        </tr>
+      `;
+    });
+
+    els.planTableBody.innerHTML = rows.join("");
   }
 
-  function panMove(event) {
-    if (!state.isPanning) return;
-    const dx = event.clientX - state.panStart.x;
-    const dy = event.clientY - state.panStart.y;
-    state.panX = state.panOrigin.x + dx;
-    state.panY = state.panOrigin.y + dy;
-    applyTransform();
+  function updatePlanButtons() {
+    els.sortRiskBtn.classList.toggle("active", state.planSort === "risk");
+    els.sortCostBtn.classList.toggle("active", state.planSort === "cost");
   }
 
-  function endPan(event) {
-    if (!state.isPanning) return;
-    state.isPanning = false;
-    if (elements.mapViewport.hasPointerCapture(event.pointerId)) {
-      elements.mapViewport.releasePointerCapture(event.pointerId);
+  function renderCrewSchedule() {
+    const crews = state.data?.crews || [];
+    els.crewTimeline.innerHTML = "";
+    els.crewSummary.innerHTML = "";
+    if (!crews.length) return;
+
+    crews.forEach((crew) => {
+      const row = document.createElement("div");
+      row.className = "crew-row";
+
+      const meta = document.createElement("div");
+      meta.className = "crew-meta";
+      const name = document.createElement("div");
+      name.className = "name";
+      name.textContent = crew.name;
+      const status = document.createElement("div");
+      status.className = "status";
+      status.textContent = `${crew.status} • shift ends ${formatRelative(crew.shift_end)}`;
+      meta.append(name, status);
+
+      const bar = document.createElement("div");
+      bar.className = "timeline-bar";
+      const crewTasks = crew.next_tasks || [];
+      const totalMinutes = crewTasks.reduce((acc, task) => acc + task.eta_minutes, 0) || 1;
+      let cursor = 0;
+      crewTasks.forEach((task) => {
+        const portion = Math.max(12, (task.eta_minutes / totalMinutes) * 100 * 0.85);
+        const block = document.createElement("div");
+        block.className = "timeline-block";
+        block.style.left = `${Math.min(88, cursor)}%`;
+        block.style.width = `${Math.min(100, portion)}%`;
+        block.title = `${task.asset_name} · ${task.task} · ETA ${task.eta_minutes} min`;
+        cursor += portion + 4;
+        bar.appendChild(block);
+      });
+
+      row.append(meta, bar);
+      els.crewTimeline.appendChild(row);
+    });
+
+    const onSite = crews.filter((crew) => crew.status === "On-site").length;
+    const enRoute = crews.filter((crew) => crew.status === "En route").length;
+    const standby = crews.filter((crew) => crew.status === "Standby").length;
+    const totalTasks = crews.reduce((acc, crew) => acc + (crew.next_tasks ? crew.next_tasks.length : 0), 0);
+
+    els.crewSummary.innerHTML = `
+      <div class="summary-card">${onSite} crews currently on-site</div>
+      <div class="summary-card">${enRoute} crews en route, ${standby} on standby</div>
+      <div class="summary-card">${totalTasks} tasks queued with AI sequencing</div>
+    `;
+
+    const fastestEta = Math.min(
+      ...crews.flatMap((crew) => crew.next_tasks.map((task) => task.eta_minutes))
+    );
+    if (Number.isFinite(fastestEta)) {
+      els.crewNarrative.textContent = `AI sequencing keeps ${crews.length} crews aligned. Fastest dispatch ETA ${fastestEta} minutes, minimizing downtime across service regions.`;
     }
   }
 
-  function daysUntil(date) {
-    const now = new Date();
-    const future = new Date(date);
-    return Math.round((future - now) / (1000 * 60 * 60 * 24));
-  }
-
-  function daysSince(date) {
-    const now = new Date();
-    const past = new Date(date);
-    return Math.round((now - past) / (1000 * 60 * 60 * 24));
-  }
-
-  function badgeFor(status) {
-    if (!status) return '';
-    if (status.toLowerCase().includes('critical')) return 'critical';
-    if (status.toLowerCase().includes('warn') || status.toLowerCase().includes('risk')) {
-      return 'warning';
+  function renderResolution() {
+    const insights = state.data?.resolution_insights || [];
+    if (!insights.length) {
+      els.resolutionTableBody.innerHTML = "<tr><td colspan=5>No insights available</td></tr>";
+      return;
     }
-    if (status.toLowerCase().includes('good') || status.toLowerCase().includes('excellent')) {
-      return 'healthy';
+    const rows = insights.map((item) => {
+      return `
+        <tr>
+          <td>${item.part_name}</td>
+          <td>${item.replacement_frequency}</td>
+          <td>${item.failure_pattern}</td>
+          <td>${item.recent_interventions}</td>
+          <td>${item.ai_recommendation}</td>
+        </tr>
+      `;
+    });
+    els.resolutionTableBody.innerHTML = rows.join("");
+
+    const top = insights.reduce((best, item) =>
+      item.availability_score > best.availability_score ? item : best
+    );
+    els.resolutionInsight.textContent = `${top.ai_recommendation}. Availability confidence ${top.availability_score}%.`;
+  }
+
+  function startDrag(event) {
+    event.preventDefault();
+    state.isDragging = true;
+    state.pointerId = event.pointerId;
+    els.mapViewport.setPointerCapture(state.pointerId);
+    state.dragOrigin = { x: event.clientX, y: event.clientY };
+    state.startOffset = { ...state.offset };
+  }
+
+  function onDrag(event) {
+    if (!state.isDragging || event.pointerId !== state.pointerId) return;
+    const dx = event.clientX - state.dragOrigin.x;
+    const dy = event.clientY - state.dragOrigin.y;
+    state.offset.x = state.startOffset.x + dx;
+    state.offset.y = state.startOffset.y + dy;
+    updateMapTransform();
+  }
+
+  function endDrag(event) {
+    if (state.isDragging && event.pointerId === state.pointerId) {
+      state.isDragging = false;
+      els.mapViewport.releasePointerCapture(state.pointerId);
     }
-    return '';
   }
 
-  function formatTime(value) {
-    return new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  function onWheel(event) {
+    event.preventDefault();
+    const delta = event.deltaY < 0 ? 0.12 : -0.12;
+    changeZoom(delta, event);
   }
 
-  function formatDate(value) {
-    return new Date(value).toLocaleDateString();
+  function changeZoom(delta, originEvent) {
+    const newZoom = clamp(state.zoom + delta, 0.6, 1.8);
+    if (newZoom === state.zoom) return;
+
+    if (originEvent) {
+      const rect = els.mapViewport.getBoundingClientRect();
+      const pointerX = originEvent.clientX - rect.left;
+      const pointerY = originEvent.clientY - rect.top;
+      const mapX = (pointerX - state.offset.x) / state.zoom;
+      const mapY = (pointerY - state.offset.y) / state.zoom;
+      state.offset.x = pointerX - mapX * newZoom;
+      state.offset.y = pointerY - mapY * newZoom;
+    } else {
+      const rect = els.mapViewport.getBoundingClientRect();
+      state.offset.x = (rect.width - 1000 * newZoom) / 2;
+      state.offset.y = (rect.height - 700 * newZoom) / 2;
+    }
+
+    state.zoom = newZoom;
+    updateMapTransform();
   }
 
-  function formatLabel(value) {
-    return value.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
+  function resetMapView() {
+    const rect = els.mapViewport.getBoundingClientRect();
+    if (!rect.width || !rect.height) {
+      requestAnimationFrame(resetMapView);
+      return;
+    }
+    const fitZoom = Math.min(rect.width / 1000, rect.height / 700);
+    state.zoom = clamp(fitZoom, 0.6, 1.2);
+    state.offset.x = (rect.width - 1000 * state.zoom) / 2;
+    state.offset.y = (rect.height - 700 * state.zoom) / 2;
+    updateMapTransform();
   }
 
-  function groupBy(items, fn) {
-    return items.reduce((acc, item) => {
-      const key = fn(item);
-      acc[key] = acc[key] || [];
-      acc[key].push(item);
-      return acc;
-    }, {});
+  function updateMapTransform() {
+    els.mapInner.style.transform = `scale(${state.zoom})`;
+    els.mapInner.style.left = `${state.offset.x}px`;
+    els.mapInner.style.top = `${state.offset.y}px`;
   }
 
   function clamp(value, min, max) {
     return Math.min(Math.max(value, min), max);
   }
 
-  async function fetchJson(url, options = {}) {
-    const response = await fetch(url, {
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      ...options,
-    });
-    if (!response.ok) {
-      throw new Error(`${response.status} ${response.statusText}`);
-    }
-    return response.json();
+  function formatCurrency(value) {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      maximumFractionDigits: 0,
+    }).format(value || 0);
+  }
+
+  function formatRelative(dateString) {
+    if (!dateString) return "n/a";
+    const target = new Date(dateString);
+    const now = new Date();
+    const diff = target - now;
+    const days = Math.round(diff / (1000 * 60 * 60 * 24));
+    if (days > 0) return `in ${days} day${days === 1 ? "" : "s"}`;
+    if (days < 0) return `${Math.abs(days)} day${Math.abs(days) === 1 ? "" : "s"} ago`;
+    return "today";
+  }
+
+  function formatTimeRange(start, end) {
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    return `${startDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} - ${endDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
   }
 })();

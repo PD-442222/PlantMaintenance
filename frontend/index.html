@@ -4,20 +4,23 @@
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Utility Maintenance Control Tower</title>
+    <title>AI-Driven Maintenance Control Tower</title>
     <link rel="stylesheet" href="/static/styles.css" />
   </head>
   <body>
-    <div class="app-shell">
-      <header class="top-bar">
+    <div class="app-root">
+      <header class="app-header">
         <div class="brand">
-          <div class="brand-icon" aria-hidden="true"></div>
-          <h1>Utility Maintenance Control Tower</h1>
+          <span class="brand-mark" aria-hidden="true"></span>
+          <div>
+            <p class="eyebrow">Utility Intelligence Suite</p>
+            <h1>AI-Driven Maintenance Control Tower</h1>
+          </div>
         </div>
-        <div class="top-controls">
-          <button id="refreshBtn" class="accent-button" type="button">
+        <div class="header-actions">
+          <button id="refreshBtn" class="refresh-button" type="button">
             <span class="btn-icon" aria-hidden="true">&#10227;</span>
-            <span>Refresh data</span>
+            <span>Refresh scenario</span>
           </button>
           <div class="timestamp">
             <span class="dot" aria-hidden="true"></span>
@@ -25,75 +28,126 @@
           </div>
         </div>
       </header>
-      <div class="layout">
-        <aside class="sidebar">
-          <section>
-            <h2>Operational lenses</h2>
-            <ul id="lensList" class="tag-list"></ul>
-          </section>
-          <section>
-            <h2>Asset health</h2>
-            <div id="healthBreakdown" class="status-group"></div>
-          </section>
-          <section>
-            <h2>Regions</h2>
-            <ul id="regionList" class="tag-list"></ul>
-          </section>
-        </aside>
-        <main class="workspace">
-          <div class="map-wrapper">
-            <div id="mapViewport" class="map-viewport" aria-label="Simulated operations map">
+
+      <main class="dashboard-grid">
+        <section class="card asset-health" aria-labelledby="assetHealthTitle">
+          <header class="card-header">
+            <div>
+              <p class="card-kicker">🛰️ Asset Health</p>
+              <h2 id="assetHealthTitle">Grid condition map</h2>
+            </div>
+            <div class="map-controls" role="group" aria-label="Map controls">
+              <button id="zoomOutBtn" type="button" aria-label="Zoom out">−</button>
+              <button id="zoomInBtn" type="button" aria-label="Zoom in">+</button>
+              <button id="resetViewBtn" type="button">Reset</button>
+            </div>
+          </header>
+          <div class="map-stage">
+            <div id="mapViewport" class="map-viewport" aria-label="Simulated grid map">
               <div id="mapInner" class="map-inner">
-                <div id="gridOverlay" class="map-grid" aria-hidden="true"></div>
-                <div id="routeLayer" class="route-layer" aria-hidden="true"></div>
+                <div id="gridOverlay" class="grid-overlay" aria-hidden="true"></div>
                 <div id="markerLayer" class="marker-layer"></div>
               </div>
             </div>
-            <div class="map-legend" aria-label="Map legend">
-              <span class="legend-swatch healthy"></span>
-              <span>Healthy</span>
-              <span class="legend-swatch warning"></span>
-              <span>Warning</span>
-              <span class="legend-swatch critical"></span>
-              <span>Critical</span>
-              <span class="legend-swatch crew"></span>
-              <span>Crew</span>
-              <span class="legend-swatch depot"></span>
-              <span>Depot</span>
+            <aside class="map-legend" aria-label="Asset legend">
+              <div><span class="legend-dot healthy"></span>Healthy</div>
+              <div><span class="legend-dot warning"></span>Warning</div>
+              <div><span class="legend-dot critical"></span>Critical</div>
+              <div><span class="legend-dot crew"></span>Crew</div>
+              <div><span class="legend-dot depot"></span>Depot</div>
+            </aside>
+          </div>
+          <div class="asset-summary">
+            <div class="metric">
+              <p class="label">Critical assets</p>
+              <p id="criticalCount" class="value">0</p>
+            </div>
+            <div class="metric">
+              <p class="label">Warning assets</p>
+              <p id="warningCount" class="value">0</p>
+            </div>
+            <div class="metric">
+              <p class="label">Healthy assets</p>
+              <p id="healthyCount" class="value">0</p>
+            </div>
+            <div class="metric wide">
+              <p class="label">AI summary</p>
+              <p id="aiSummary" class="value narrative">—</p>
             </div>
           </div>
-          <div class="floating-panels">
-            <section class="panel" id="assetPanel">
-              <header>
-                <span class="status-chip live">&#9989; Live assets</span>
-                <h2>Asset spotlight</h2>
-              </header>
-              <div class="panel-body">
-                <ul id="assetList" class="item-list"></ul>
-              </div>
-            </section>
-            <section class="panel" id="riskPanel">
-              <header>
-                <span class="status-chip ai">&#129504; Risk insights</span>
-                <h2>Prioritized actions</h2>
-              </header>
-              <div class="panel-body">
-                <ul id="priorityList" class="item-list"></ul>
-              </div>
-            </section>
-            <section class="panel" id="crewPanel">
-              <header>
-                <span class="status-chip alert">&#9888; Field crews</span>
-                <h2>Crew readiness</h2>
-              </header>
-              <div class="panel-body">
-                <ul id="crewList" class="item-list"></ul>
-              </div>
-            </section>
+        </section>
+
+        <section class="card maintenance-plan" aria-labelledby="planTitle">
+          <header class="card-header">
+            <div>
+              <p class="card-kicker">🧭 Optimized Maintenance Plan</p>
+              <h2 id="planTitle">Risk-based prioritization</h2>
+            </div>
+            <div class="plan-controls">
+              <button id="sortRiskBtn" type="button">Sort by risk</button>
+              <button id="sortCostBtn" type="button">Sort by cost</button>
+              <button id="filterHighBtn" type="button" class="toggle" aria-pressed="false">High priority</button>
+            </div>
+          </header>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Rank</th>
+                  <th scope="col">Asset</th>
+                  <th scope="col">Criticality</th>
+                  <th scope="col">Priority</th>
+                  <th scope="col">Est. cost</th>
+                  <th scope="col">Action</th>
+                </tr>
+              </thead>
+              <tbody id="planTableBody"></tbody>
+            </table>
           </div>
-        </main>
-      </div>
+        </section>
+
+        <section class="card crew-optimization" aria-labelledby="crewTitle">
+          <header class="card-header">
+            <div>
+              <p class="card-kicker">🛠️ Crew Schedule Optimization</p>
+              <h2 id="crewTitle">Live crew routing</h2>
+            </div>
+          </header>
+          <div id="crewTimeline" class="crew-timeline" aria-label="Crew schedule timeline"></div>
+          <div id="crewSummary" class="crew-summary"></div>
+          <p class="ai-note" id="crewNarrative">
+            AI optimization keeps crews synchronized, reducing mean time to repair and balancing travel versus downtime.
+          </p>
+        </section>
+
+        <section class="card resolution-ai" aria-labelledby="resolutionTitle">
+          <header class="card-header">
+            <div>
+              <p class="card-kicker">🤖 AI-Based Maintenance Resolution</p>
+              <h2 id="resolutionTitle">Parts intelligence</h2>
+            </div>
+          </header>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Component</th>
+                  <th scope="col">Frequency</th>
+                  <th scope="col">Failure pattern</th>
+                  <th scope="col">Interventions</th>
+                  <th scope="col">AI recommendation</th>
+                </tr>
+              </thead>
+              <tbody id="resolutionTableBody"></tbody>
+            </table>
+          </div>
+          <div class="insight-panel" id="resolutionInsight">
+            High correlation between switchgear relays and voltage spikes — recommend predictive replacement.
+          </div>
+        </section>
+      </main>
     </div>
+
     <div id="markerPopover" class="marker-popover" role="dialog" aria-hidden="true"></div>
     <script src="/static/app.js" defer></script>
   </body>
