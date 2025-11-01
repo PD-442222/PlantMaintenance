@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI-Driven Maintenance Control Tower</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <div class="app-root">
+      <header class="app-header">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true"></span>
+          <div>
+            <p class="eyebrow">Utility Intelligence Suite</p>
+            <h1>AI-Driven Maintenance Control Tower</h1>
+          </div>
+        </div>
+        <div class="header-actions">
+          <button id="refreshBtn" class="refresh-button" type="button">
+            <span class="btn-icon" aria-hidden="true">&#10227;</span>
+            <span>Refresh scenario</span>
+          </button>
+          <div class="timestamp">
+            <span class="dot" aria-hidden="true"></span>
+            <span id="generatedAt">Syncing…</span>
+          </div>
+        </div>
+      </header>
+
+      <main class="dashboard-grid">
+        <section class="card asset-health" aria-labelledby="assetHealthTitle">
+          <header class="card-header">
+            <div>
+              <p class="card-kicker">🛰️ Asset Health</p>
+              <h2 id="assetHealthTitle">Grid condition map</h2>
+            </div>
+            <div class="map-controls" role="group" aria-label="Map controls">
+              <button id="zoomOutBtn" type="button" aria-label="Zoom out">−</button>
+              <button id="zoomInBtn" type="button" aria-label="Zoom in">+</button>
+              <button id="resetViewBtn" type="button">Reset</button>
+            </div>
+          </header>
+          <div class="map-stage">
+            <div id="mapViewport" class="map-viewport" aria-label="Simulated grid map">
+              <div id="mapInner" class="map-inner">
+                <div id="gridOverlay" class="grid-overlay" aria-hidden="true"></div>
+                <div id="markerLayer" class="marker-layer"></div>
+              </div>
+            </div>
+            <aside class="map-legend" aria-label="Asset legend">
+              <div><span class="legend-dot healthy"></span>Healthy</div>
+              <div><span class="legend-dot warning"></span>Warning</div>
+              <div><span class="legend-dot critical"></span>Critical</div>
+              <div><span class="legend-dot crew"></span>Crew</div>
+              <div><span class="legend-dot depot"></span>Depot</div>
+            </aside>
+          </div>
+          <div class="asset-summary">
+            <div class="metric">
+              <p class="label">Critical assets</p>
+              <p id="criticalCount" class="value">0</p>
+            </div>
+            <div class="metric">
+              <p class="label">Warning assets</p>
+              <p id="warningCount" class="value">0</p>
+            </div>
+            <div class="metric">
+              <p class="label">Healthy assets</p>
+              <p id="healthyCount" class="value">0</p>
+            </div>
+            <div class="metric wide">
+              <p class="label">AI summary</p>
+              <p id="aiSummary" class="value narrative">—</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="card maintenance-plan" aria-labelledby="planTitle">
+          <header class="card-header">
+            <div>
+              <p class="card-kicker">🧭 Optimized Maintenance Plan</p>
+              <h2 id="planTitle">Risk-based prioritization</h2>
+            </div>
+            <div class="plan-controls">
+              <button id="sortRiskBtn" type="button">Sort by risk</button>
+              <button id="sortCostBtn" type="button">Sort by cost</button>
+              <button id="filterHighBtn" type="button" class="toggle" aria-pressed="false">High priority</button>
+            </div>
+          </header>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Rank</th>
+                  <th scope="col">Asset</th>
+                  <th scope="col">Criticality</th>
+                  <th scope="col">Priority</th>
+                  <th scope="col">Est. cost</th>
+                  <th scope="col">Action</th>
+                </tr>
+              </thead>
+              <tbody id="planTableBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="card crew-optimization" aria-labelledby="crewTitle">
+          <header class="card-header">
+            <div>
+              <p class="card-kicker">🛠️ Crew Schedule Optimization</p>
+              <h2 id="crewTitle">Live crew routing</h2>
+            </div>
+          </header>
+          <div id="crewTimeline" class="crew-timeline" aria-label="Crew schedule timeline"></div>
+          <div id="crewSummary" class="crew-summary"></div>
+          <p class="ai-note" id="crewNarrative">
+            AI optimization keeps crews synchronized, reducing mean time to repair and balancing travel versus downtime.
+          </p>
+        </section>
+
+        <section class="card resolution-ai" aria-labelledby="resolutionTitle">
+          <header class="card-header">
+            <div>
+              <p class="card-kicker">🤖 AI-Based Maintenance Resolution</p>
+              <h2 id="resolutionTitle">Parts intelligence</h2>
+            </div>
+          </header>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Component</th>
+                  <th scope="col">Frequency</th>
+                  <th scope="col">Failure pattern</th>
+                  <th scope="col">Interventions</th>
+                  <th scope="col">AI recommendation</th>
+                </tr>
+              </thead>
+              <tbody id="resolutionTableBody"></tbody>
+            </table>
+          </div>
+          <div class="insight-panel" id="resolutionInsight">
+            High correlation between switchgear relays and voltage spikes — recommend predictive replacement.
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div id="markerPopover" class="marker-popover" role="dialog" aria-hidden="true"></div>
+    <script src="/static/app.js" defer></script>
+  </body>
+</html>
