@@ -1,9 +1,9 @@
 # Utility Maintenance Control Tower Demo
 
 This project delivers an interactive control tower experience for utility operations teams.
-It pairs a FastAPI backend with a React + Material UI frontend and a simulated, map-like
-visualization to highlight asset health, risk prioritization, spares coverage, and crew
-activity without depending on external mapping providers.
+It pairs a FastAPI backend with a handcrafted HTML/CSS/JavaScript frontend and a simulated
+map-like visualization to highlight asset health, risk prioritization, spares coverage, and
+crew activity without depending on external mapping or UI frameworks.
 
 ## Getting started
 
@@ -15,21 +15,21 @@ activity without depending on external mapping providers.
    pip install -r requirements.txt
    ```
 
-2. Launch the FastAPI application:
+2. Launch the FastAPI application (the host/port flags keep it friendly for GitHub Codespaces):
 
    ```bash
-   uvicorn app.main:app --reload
+   uvicorn app.main:app --host 0.0.0.0 --port 8000
    ```
 
 3. Visit [http://localhost:8000](http://localhost:8000) to open the control tower dashboard.
-   The frontend is bundled directly in the `frontend/` directory and is served as static files
-   by FastAPI, so no additional build tooling is required.
+   The frontend ships directly in the `frontend/` directory and is served as static files by
+   FastAPI—no additional build tooling or CDN-hosted libraries are required.
 
 ## Demo features
 
-- **Simulated operational map** – an SVG-based workspace supports panning, zooming, and animated
-  markers that mimic an interactive map without external basemap APIs.
-- **Asset insights** – color-coded asset markers, detail dialogs, and floating panels summarize
+- **Simulated operational map** – a CSS-powered grid workspace supports panning, scroll-wheel zoom,
+  and animated markers that mimic an interactive map without external basemap APIs.
+- **Asset insights** – color-coded asset markers, detail popovers, and floating panels summarize
   equipment status, health distribution, and the highest-risk assets to inspect next.
 - **Crew visibility** – crew locations, task queues, and illustrative travel paths show how field
   teams are positioned relative to critical work.
@@ -52,13 +52,15 @@ position assets and crews inside the simulated workspace.
 
 ## Frontend architecture
 
-The dashboard is implemented with React 18 and Material UI components loaded from CDN sources.
-All logic lives in `frontend/app.js` (transpiled in-browser via Babel) and renders a responsive
-layout featuring:
+The dashboard is implemented with modern, framework-free JavaScript contained in `frontend/app.js`.
+Styling lives in `frontend/styles.css` and uses CSS variables, gradients, glassmorphism, and smooth
+transitions to create a polished look while staying self-contained. The HTML structure in
+`frontend/index.html` provides the navigation shell, map canvas, and insight panels. All data is
+fetched from the FastAPI endpoints above, and the simulated map supports panning, zooming, marker
+animations, and popovers entirely on the client side.
 
-- A top navigation bar with global status indicators and a manual refresh button.
-- A collapsible filter sidebar summarizing asset categories.
-- A central simulated map augmented with floating insight panels for assets, risk, and crews.
+## Codespaces tip
 
-Because the UI uses standard HTML/CSS/JavaScript and CDN-hosted React/MUI bundles, it runs anywhere
-FastAPI can serve static files—ideal for lightweight demos and GitHub Codespaces environments.
+If you are running in GitHub Codespaces, forward port `8000` and open the forwarded URL to view the
+dashboard. Because the UI is built without external CDNs, it works even when outbound network
+access is restricted.
