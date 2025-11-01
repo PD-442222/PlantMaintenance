@@ -2,117 +2,27 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Utility Maintenance Control Tower</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="/static/styles.css" />
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@emotion/react@11.11.3/umd/emotion-react.umd.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@emotion/styled@11.11.0/umd/emotion-styled.umd.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@mui/material@5.15.14/umd/material-ui.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@mui/icons-material@5.15.14/umd/material-ui-icons.development.js" crossorigin></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
   </head>
   <body>
-    <header class="page-header">
-      <div class="branding">
-        <h1>Utility Maintenance Control Tower</h1>
-        <p class="subtitle">Actionable intelligence for operations &amp; field teams</p>
-      </div>
-      <div class="header-status">
-        <span class="status-pill live">✅ Live</span>
-        <span class="status-pill ai">🧠 AI Insights</span>
-        <span class="status-pill alert">⚠️ Alerts Active</span>
-        <div class="datetime" id="current-datetime"></div>
-      </div>
-    </header>
-
-    <main class="dashboard">
-      <section class="insights-grid">
-        <article class="insight-card" id="asset-health-card">
-          <header class="card-header">
-            <div>
-              <h2>Asset Health</h2>
-              <p class="card-subtitle">Fleet-wide condition pulse</p>
-            </div>
-            <span class="chip good">✅ Stable</span>
-          </header>
-          <p id="asset-summary" class="card-summary"></p>
-          <ul class="list" id="asset-list"></ul>
-        </article>
-
-        <article class="insight-card" id="risk-card">
-          <header class="card-header">
-            <div>
-              <h2>Risk-Based Priorities</h2>
-              <p class="card-subtitle">AI-ranked maintenance focus</p>
-            </div>
-            <span class="chip warning">🧠 AI</span>
-          </header>
-          <ol class="list" id="priority-list"></ol>
-        </article>
-
-        <article class="insight-card" id="failure-card">
-          <header class="card-header">
-            <div>
-              <h2>Predicted Failures</h2>
-              <p class="card-subtitle">Proactive intervention signals</p>
-            </div>
-            <span class="chip danger">⚠️ Alert</span>
-          </header>
-          <ul class="list" id="failure-list"></ul>
-        </article>
-
-        <article class="insight-card" id="spares-card">
-          <header class="card-header">
-            <div>
-              <h2>Spares Availability</h2>
-              <p class="card-subtitle">Depot readiness outlook</p>
-            </div>
-            <span class="chip info">📦 Inventory</span>
-          </header>
-          <ul class="list" id="spare-list"></ul>
-        </article>
-
-        <article class="insight-card" id="crew-card">
-          <header class="card-header">
-            <div>
-              <h2>Crew Scheduling &amp; Routing</h2>
-              <p class="card-subtitle">Field operations coordination</p>
-            </div>
-            <span class="chip live">🚐 Live</span>
-          </header>
-          <ul class="list" id="crew-list"></ul>
-        </article>
-      </section>
-
-      <section class="map-section">
-        <div class="map-toolbar">
-          <div class="toolbar-group legend">
-            <span><span class="dot excellent"></span>Excellent</span>
-            <span><span class="dot good"></span>Good</span>
-            <span><span class="dot fair"></span>Fair</span>
-            <span><span class="dot risk"></span>At Risk</span>
-            <span><span class="dot critical"></span>Critical</span>
-          </div>
-          <div class="toolbar-group toggles" id="layer-toggles">
-            <label><input type="checkbox" data-layer="assets" checked /> Assets</label>
-            <label><input type="checkbox" data-layer="failures" checked /> Risks</label>
-            <label><input type="checkbox" data-layer="spares" checked /> Spares</label>
-            <label><input type="checkbox" data-layer="crews" checked /> Crews</label>
-            <label><input type="checkbox" data-layer="routes" checked /> Routes</label>
-          </div>
-        </div>
-        <div class="map-wrapper">
-          <div id="map" class="map-canvas" role="img" aria-label="Operational map"></div>
-          <div id="map-message" class="map-message" hidden></div>
-        </div>
-      </section>
-    </main>
-
-    <footer class="page-footer">
-      <p>Last refreshed insights update automatically every minute.</p>
-    </footer>
-
-    <script src="/static/app.js" defer></script>
+    <noscript>You need to enable JavaScript to run this application.</noscript>
+    <div id="root"></div>
+    <script type="text/babel" data-presets="env,react" src="/static/app.js"></script>
   </body>
 </html>
