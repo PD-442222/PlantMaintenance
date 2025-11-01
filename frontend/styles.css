@@ -207,6 +207,16 @@ body {
   min-height: 520px;
 }
 
+#map.map-error {
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 2rem;
+  background: #f8fafc;
+  border: 1px dashed var(--border);
+  color: var(--muted);
+}
+
 .map-toolbar {
   display: flex;
   justify-content: space-between;

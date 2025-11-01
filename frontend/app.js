@@ -1,4 +1,15 @@
-const map = L.map("map", {
+const mapContainer = document.getElementById("map");
+
+if (!window.L || !mapContainer) {
+  if (mapContainer) {
+    mapContainer.classList.add("map-error");
+    mapContainer.innerHTML =
+      "<p>Interactive map failed to load. Check your connection and refresh.</p>";
+  }
+  throw new Error("Leaflet library failed to load");
+}
+
+const map = L.map(mapContainer, {
   zoomControl: false,
 }).setView([40.744, -73.97], 11.8);
 
