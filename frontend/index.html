@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Utility Maintenance Control Tower</title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-sA+4Zj6g1j0kSdyZoHn5dE2l9xux2D1S2m2j2grrQ2o="
+      crossorigin=""
+    />
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <header class="page-header">
+      <div>
+        <h1>Utility Maintenance Control Tower</h1>
+        <p class="subtitle">
+          Unified situational awareness for operations managers &amp; field crews
+        </p>
+      </div>
+      <div class="datetime" id="current-datetime"></div>
+    </header>
+
+    <main class="layout">
+      <section class="insights-panel">
+        <div class="panel" id="asset-health-panel">
+          <header>
+            <h2>Asset Health</h2>
+            <span class="tag good">Live</span>
+          </header>
+          <p id="asset-summary"></p>
+          <ul class="list" id="asset-list"></ul>
+        </div>
+
+        <div class="panel" id="risk-panel">
+          <header>
+            <h2>Risk-Based Priorities</h2>
+            <span class="tag warning">AI Ranked</span>
+          </header>
+          <p>Focus maintenance where risk and impact intersect.</p>
+          <ol class="list" id="priority-list"></ol>
+        </div>
+
+        <div class="panel" id="failures-panel">
+          <header>
+            <h2>Predicted Failures</h2>
+            <span class="tag danger">Alerts</span>
+          </header>
+          <ul class="list" id="failure-list"></ul>
+        </div>
+
+        <div class="panel" id="spares-panel">
+          <header>
+            <h2>Spares Availability</h2>
+            <span class="tag info">Inventory</span>
+          </header>
+          <ul class="list" id="spare-list"></ul>
+        </div>
+
+        <div class="panel" id="crew-panel">
+          <header>
+            <h2>Crew Scheduling &amp; Routing</h2>
+            <span class="tag good">Coordinated</span>
+          </header>
+          <ul class="list" id="crew-list"></ul>
+        </div>
+      </section>
+
+      <section class="map-panel">
+        <div class="map-toolbar">
+          <div class="toggles">
+            <label><input type="checkbox" data-layer="assets" checked /> Assets</label>
+            <label><input type="checkbox" data-layer="failures" checked /> Risks</label>
+            <label><input type="checkbox" data-layer="spares" checked /> Spares</label>
+            <label><input type="checkbox" data-layer="crews" checked /> Crews</label>
+            <label><input type="checkbox" data-layer="routes" checked /> Routes</label>
+          </div>
+          <div class="legend">
+            <span><span class="dot excellent"></span> Excellent</span>
+            <span><span class="dot good"></span> Good</span>
+            <span><span class="dot fair"></span> Fair</span>
+            <span><span class="dot risk"></span> At Risk</span>
+            <span><span class="dot critical"></span> Critical</span>
+          </div>
+        </div>
+        <div id="map"></div>
+      </section>
+    </main>
+
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-o9N1j7kG+3CX6X1cxZV8oPZxC25f6/sOlZ342XQI74c="
+      crossorigin=""
+    ></script>
+    <script src="/static/app.js" defer></script>
+  </body>
+</html>
