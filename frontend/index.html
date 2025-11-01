@@ -4,96 +4,115 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Utility Maintenance Control Tower</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
       rel="stylesheet"
-      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-      integrity="sha256-sA+4Zj6g1j0kSdyZoHn5dE2l9xux2D1S2m2j2grrQ2o="
-      crossorigin=""
     />
     <link rel="stylesheet" href="/static/styles.css" />
   </head>
   <body>
     <header class="page-header">
-      <div>
+      <div class="branding">
         <h1>Utility Maintenance Control Tower</h1>
-        <p class="subtitle">
-          Unified situational awareness for operations managers &amp; field crews
-        </p>
+        <p class="subtitle">Actionable intelligence for operations &amp; field teams</p>
       </div>
-      <div class="datetime" id="current-datetime"></div>
+      <div class="header-status">
+        <span class="status-pill live">✅ Live</span>
+        <span class="status-pill ai">🧠 AI Insights</span>
+        <span class="status-pill alert">⚠️ Alerts Active</span>
+        <div class="datetime" id="current-datetime"></div>
+      </div>
     </header>
 
-    <main class="layout">
-      <section class="insights-panel">
-        <div class="panel" id="asset-health-panel">
-          <header>
-            <h2>Asset Health</h2>
-            <span class="tag good">Live</span>
+    <main class="dashboard">
+      <section class="insights-grid">
+        <article class="insight-card" id="asset-health-card">
+          <header class="card-header">
+            <div>
+              <h2>Asset Health</h2>
+              <p class="card-subtitle">Fleet-wide condition pulse</p>
+            </div>
+            <span class="chip good">✅ Stable</span>
           </header>
-          <p id="asset-summary"></p>
+          <p id="asset-summary" class="card-summary"></p>
           <ul class="list" id="asset-list"></ul>
-        </div>
+        </article>
 
-        <div class="panel" id="risk-panel">
-          <header>
-            <h2>Risk-Based Priorities</h2>
-            <span class="tag warning">AI Ranked</span>
+        <article class="insight-card" id="risk-card">
+          <header class="card-header">
+            <div>
+              <h2>Risk-Based Priorities</h2>
+              <p class="card-subtitle">AI-ranked maintenance focus</p>
+            </div>
+            <span class="chip warning">🧠 AI</span>
           </header>
-          <p>Focus maintenance where risk and impact intersect.</p>
           <ol class="list" id="priority-list"></ol>
-        </div>
+        </article>
 
-        <div class="panel" id="failures-panel">
-          <header>
-            <h2>Predicted Failures</h2>
-            <span class="tag danger">Alerts</span>
+        <article class="insight-card" id="failure-card">
+          <header class="card-header">
+            <div>
+              <h2>Predicted Failures</h2>
+              <p class="card-subtitle">Proactive intervention signals</p>
+            </div>
+            <span class="chip danger">⚠️ Alert</span>
           </header>
           <ul class="list" id="failure-list"></ul>
-        </div>
+        </article>
 
-        <div class="panel" id="spares-panel">
-          <header>
-            <h2>Spares Availability</h2>
-            <span class="tag info">Inventory</span>
+        <article class="insight-card" id="spares-card">
+          <header class="card-header">
+            <div>
+              <h2>Spares Availability</h2>
+              <p class="card-subtitle">Depot readiness outlook</p>
+            </div>
+            <span class="chip info">📦 Inventory</span>
           </header>
           <ul class="list" id="spare-list"></ul>
-        </div>
+        </article>
 
-        <div class="panel" id="crew-panel">
-          <header>
-            <h2>Crew Scheduling &amp; Routing</h2>
-            <span class="tag good">Coordinated</span>
+        <article class="insight-card" id="crew-card">
+          <header class="card-header">
+            <div>
+              <h2>Crew Scheduling &amp; Routing</h2>
+              <p class="card-subtitle">Field operations coordination</p>
+            </div>
+            <span class="chip live">🚐 Live</span>
           </header>
           <ul class="list" id="crew-list"></ul>
-        </div>
+        </article>
       </section>
 
-      <section class="map-panel">
+      <section class="map-section">
         <div class="map-toolbar">
-          <div class="toggles">
+          <div class="toolbar-group legend">
+            <span><span class="dot excellent"></span>Excellent</span>
+            <span><span class="dot good"></span>Good</span>
+            <span><span class="dot fair"></span>Fair</span>
+            <span><span class="dot risk"></span>At Risk</span>
+            <span><span class="dot critical"></span>Critical</span>
+          </div>
+          <div class="toolbar-group toggles" id="layer-toggles">
             <label><input type="checkbox" data-layer="assets" checked /> Assets</label>
             <label><input type="checkbox" data-layer="failures" checked /> Risks</label>
             <label><input type="checkbox" data-layer="spares" checked /> Spares</label>
             <label><input type="checkbox" data-layer="crews" checked /> Crews</label>
             <label><input type="checkbox" data-layer="routes" checked /> Routes</label>
           </div>
-          <div class="legend">
-            <span><span class="dot excellent"></span> Excellent</span>
-            <span><span class="dot good"></span> Good</span>
-            <span><span class="dot fair"></span> Fair</span>
-            <span><span class="dot risk"></span> At Risk</span>
-            <span><span class="dot critical"></span> Critical</span>
-          </div>
         </div>
-        <div id="map"></div>
+        <div class="map-wrapper">
+          <div id="map" class="map-canvas" role="img" aria-label="Operational map"></div>
+          <div id="map-message" class="map-message" hidden></div>
+        </div>
       </section>
     </main>
 
-    <script
-      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-      integrity="sha256-o9N1j7kG+3CX6X1cxZV8oPZxC25f6/sOlZ342XQI74c="
-      crossorigin=""
-    ></script>
+    <footer class="page-footer">
+      <p>Last refreshed insights update automatically every minute.</p>
+    </footer>
+
     <script src="/static/app.js" defer></script>
   </body>
 </html>

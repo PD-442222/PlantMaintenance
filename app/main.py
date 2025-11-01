@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, List
@@ -13,6 +14,8 @@ STATIC_DIR = BASE_DIR / "frontend"
 
 app = FastAPI(title="Utility Maintenance Control Tower")
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+MAPPLS_API_KEY = os.getenv("MAPPLS_API_KEY")
 
 NOW = datetime(2024, 5, 15, 9, 30)
 
@@ -252,3 +255,10 @@ async def get_crews() -> List[Dict[str, object]]:
 @app.get("/api/routes")
 async def get_routes() -> Dict[str, List[List[float]]]:
     return CREW_ROUTES
+
+
+@app.get("/api/config")
+async def get_config() -> Dict[str, object]:
+    """Expose configuration required by the frontend."""
+
+    return {"mapplsKey": MAPPLS_API_KEY}
